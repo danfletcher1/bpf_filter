@@ -1,0 +1,276 @@
+// Start pointer at 0 and read EthType
+ldx #0
+ldh [x + 12]
+
+// Check the EthType for VT-Tag and remove
+jne #0x8926, _VLANNested
+txa
+add #6
+tax
+ldh [x + 12]
+
+// Check EthType for Nested VLAN tag
+// Will remove upto 3 nested tags
+_VLANNested:
+jne #0x9100, _VLAN
+txa
+add #4
+tax
+ldh [x + 12]
+
+jne #0x9100, _VLAN
+txa
+add #4
+tax
+ldh [x + 12]
+
+jne #0x9100, _VLAN
+txa
+add #4
+tax
+ldh [x + 12]
+
+// Check EthType for VLAN tag
+_VLAN:
+jne #0x8100, _ETHHeader
+txa
+add #4
+tax
+ldh [x + 12]
+
+// Check the EthType for IPv4
+_ETHHeader:
+jeq #0x0800, _IPHeader
+ret #0
+
+// Check the IPV4 header for IPv4
+_IPHeader:
+ldb [x + 14]
+and #0xf0
+jeq #0x40, _IPV4
+ret #0
+
+// Move pointer to Network Layer
+_IPV4:
+txa
+add #14
+tax
+
+// Check for UDP or TCP
+ldb [x + 9]
+jeq #0x11, _IPSrc
+jeq #0x06, _IPSrc
+ret #0
+
+// Filter for the IPv4 Src Address
+_IPSrc:
+ld [x + 12]
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+
+
+// Filter for the IPv4 Dst Address
+ld [x + 16]
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+jeq #0x7f000001, _IPNext
+
+ret #0
+
+// Move pointer to the Transport Layer
+_IPNext:
+ldb [x + 0]
+and #0x0f
+mul #4
+add x
+tax
+
+// Check the transport Port Numbers
+// Fixed port checking of 5060 or 5080
+_SRCPort:
+ldh [x + 0]
+jeq #5060, _PASS1
+jeq #5080, _PASS1
+jmp _DSTPort
+_PASS1:
+ret #-1
+
+_DSTPort:
+ldh [x + 2]
+jeq #5060, _PASS2
+jeq #5080, _PASS2
+ret #0
+_PASS2:
+ret #-1
+Generated program:
+ L0: ldx #0x0
+ L1: ldh [x + 12]
+ L2: jeq #0x8926, L3, L7
+ L3: txa
+ L4: add #6
+ L5: tax
+ L6: ldh [x + 12]
+ L7: jeq #0x9100, L8, L22
+ L8: txa
+ L9: add #4
+ L10: tax
+ L11: ldh [x + 12]
+ L12: jeq #0x9100, L13, L22
+ L13: txa
+ L14: add #4
+ L15: tax
+ L16: ldh [x + 12]
+ L17: jeq #0x9100, L18, L22
+ L18: txa
+ L19: add #4
+ L20: tax
+ L21: ldh [x + 12]
+ L22: jeq #0x8100, L23, L27
+ L23: txa
+ L24: add #4
+ L25: tax
+ L26: ldh [x + 12]
+ L27: jeq #0x800, L29, L28
+ L28: ret #0x0
+ L29: ldb [x + 14]
+ L30: and #0xf0
+ L31: jeq #0x40, L33, L32
+ L32: ret #0x0
+ L33: txa
+ L34: add #14
+ L35: tax
+ L36: ldb [x + 8]
+ L37: jeq #0x11, L40, L38
+ L38: jeq #0x6, L40, L39
+ L39: ret #0x0
+ L40: ld [x + 12]
+ L41: jeq #0x7f000001, L63, L42
+ L42: jeq #0x7f000001, L63, L43
+ L43: jeq #0x7f000001, L63, L44
+ L44: jeq #0x7f000001, L63, L45
+ L45: jeq #0x7f000001, L63, L46
+ L46: jeq #0x7f000001, L63, L47
+ L47: jeq #0x7f000001, L63, L48
+ L48: jeq #0x7f000001, L63, L49
+ L49: jeq #0x7f000001, L63, L50
+ L50: jeq #0x7f000001, L63, L51
+ L51: ld [x + 16]
+ L52: jeq #0x7f000001, L63, L53
+ L53: jeq #0x7f000001, L63, L54
+ L54: jeq #0x7f000001, L63, L55
+ L55: jeq #0x7f000001, L63, L56
+ L56: jeq #0x7f000001, L63, L57
+ L57: jeq #0x7f000001, L63, L58
+ L58: jeq #0x7f000001, L63, L59
+ L59: jeq #0x7f000001, L63, L60
+ L60: jeq #0x7f000001, L63, L61
+ L61: jeq #0x7f000001, L63, L62
+ L62: ret #0x0
+ L63: ldb [x + 0]
+ L64: and #0xf
+ L65: mul #4
+ L66: add x
+ L67: tax
+ L68: ldh [x + 0]
+ L69: jeq #0x13c4, L75, L70
+ L70: jeq #0x13d8, L75, L71
+ L71: ldh [x + 2]
+ L72: jeq #0x13c4, L75, L73
+ L73: jeq #0x13d8, L75, L74
+ L74: ret #0x0
+ L75: ret #0xffffffff
+Validating: is runnable!
+Result:
+{ 0x1, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 0, 4, 0x00008926 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x00000006 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 0, 14, 0x00009100 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x00000004 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 0, 9, 0x00009100 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x00000004 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 0, 4, 0x00009100 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x00000004 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 0, 4, 0x00008100 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x00000004 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x0000000c },
+{ 0x15, 1, 0, 0x00000800 },
+{ 0x6, 0, 0, 0x00000000 },
+{ 0x50, 0, 0, 0x0000000e },
+{ 0x54, 0, 0, 0x000000f0 },
+{ 0x15, 1, 0, 0x00000040 },
+{ 0x6, 0, 0, 0x00000000 },
+{ 0x87, 0, 0, 0x00000000 },
+{ 0x4, 0, 0, 0x0000000e },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x50, 0, 0, 0x00000008 },
+{ 0x15, 2, 0, 0x00000011 },
+{ 0x15, 1, 0, 0x00000006 },
+{ 0x6, 0, 0, 0x00000000 },
+{ 0x40, 0, 0, 0x0000000c },
+{ 0x15, 21, 0, 0x7f000001 },
+{ 0x15, 20, 0, 0x7f000001 },
+{ 0x15, 19, 0, 0x7f000001 },
+{ 0x15, 18, 0, 0x7f000001 },
+{ 0x15, 17, 0, 0x7f000001 },
+{ 0x15, 16, 0, 0x7f000001 },
+{ 0x15, 15, 0, 0x7f000001 },
+{ 0x15, 14, 0, 0x7f000001 },
+{ 0x15, 13, 0, 0x7f000001 },
+{ 0x15, 12, 0, 0x7f000001 },
+{ 0x40, 0, 0, 0x00000010 },
+{ 0x15, 10, 0, 0x7f000001 },
+{ 0x15, 9, 0, 0x7f000001 },
+{ 0x15, 8, 0, 0x7f000001 },
+{ 0x15, 7, 0, 0x7f000001 },
+{ 0x15, 6, 0, 0x7f000001 },
+{ 0x15, 5, 0, 0x7f000001 },
+{ 0x15, 4, 0, 0x7f000001 },
+{ 0x15, 3, 0, 0x7f000001 },
+{ 0x15, 2, 0, 0x7f000001 },
+{ 0x15, 1, 0, 0x7f000001 },
+{ 0x6, 0, 0, 0x00000000 },
+{ 0x50, 0, 0, 0x00000000 },
+{ 0x54, 0, 0, 0x0000000f },
+{ 0x24, 0, 0, 0x00000004 },
+{ 0xc, 0, 0, 0x00000000 },
+{ 0x7, 0, 0, 0x00000000 },
+{ 0x48, 0, 0, 0x00000000 },
+{ 0x15, 2, 0, 0x000013c4 },
+{ 0x15, 1, 0, 0x000013d8 },
+{ 0x5, 0, 0, 0x00000001 },
+{ 0x6, 0, 0, 0xffffffff },
+{ 0x48, 0, 0, 0x00000002 },
+{ 0x15, 2, 0, 0x000013c4 },
+{ 0x15, 1, 0, 0x000013d8 },
+{ 0x6, 0, 0, 0x00000000 },
+{ 0x6, 0, 0, 0xffffffff },
